@@ -1,0 +1,1187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JumpCross — Play Across Worlds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Syne:wght@400;700;800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --neon: #00FFB2;
+    --hot: #FF2D6B;
+    --void: #050810;
+    --mid: #0B1020;
+    --panel: #0F1728;
+    --muted: #3A4460;
+    --text: #C8D8FF;
+    --white: #F0F4FF;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--void);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    overflow-x: hidden;
+    cursor: none;
+  }
+
+  /* CUSTOM CURSOR */
+  .cursor {
+    position: fixed;
+    width: 12px; height: 12px;
+    background: var(--neon);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    transition: transform 0.05s, width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: screen;
+  }
+  .cursor-ring {
+    position: fixed;
+    width: 36px; height: 36px;
+    border: 1.5px solid var(--neon);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%, -50%);
+    transition: transform 0.12s ease-out, width 0.2s, height 0.2s, opacity 0.2s;
+    opacity: 0.5;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0.35;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 48px;
+    backdrop-filter: blur(16px);
+    background: rgba(5, 8, 16, 0.7);
+    border-bottom: 1px solid rgba(0, 255, 178, 0.08);
+  }
+
+  .logo {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.6rem;
+    letter-spacing: 0.05em;
+    color: var(--white);
+    text-decoration: none;
+  }
+  .logo span { color: var(--neon); }
+
+  nav ul {
+    display: flex;
+    gap: 40px;
+    list-style: none;
+  }
+  nav a {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  nav a:hover { color: var(--neon); }
+
+  .nav-cta {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--void);
+    background: var(--neon);
+    padding: 10px 22px;
+    border: none;
+    cursor: none;
+    font-weight: 700;
+    transition: background 0.2s, transform 0.15s;
+    clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
+  }
+  .nav-cta:hover { background: #fff; transform: scale(1.04); }
+
+  /* HERO */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 0 48px;
+    overflow: hidden;
+  }
+
+  /* GRID LINES */
+  .hero::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,255,178,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,255,178,0.04) 1px, transparent 1px);
+    background-size: 60px 60px;
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
+    pointer-events: none;
+  }
+
+  .hero-eyebrow {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--neon);
+    margin-bottom: 24px;
+    opacity: 0;
+    animation: fadeUp 0.6s 0.2s forwards;
+  }
+
+  .hero h1 {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(4rem, 10vw, 9rem);
+    line-height: 0.9;
+    letter-spacing: -0.02em;
+    color: var(--white);
+    max-width: 900px;
+    opacity: 0;
+    animation: fadeUp 0.7s 0.35s forwards;
+    position: relative;
+    z-index: 2;
+  }
+
+  .hero h1 .accent {
+    color: var(--neon);
+    display: inline-block;
+    position: relative;
+  }
+  .hero h1 .accent::after {
+    content: '';
+    position: absolute;
+    bottom: 4px;
+    left: 0; right: 0;
+    height: 4px;
+    background: var(--hot);
+    transform: scaleX(0);
+    transform-origin: left;
+    animation: lineIn 0.6s 1s forwards;
+  }
+
+  .hero-sub {
+    margin-top: 32px;
+    font-size: 1.1rem;
+    color: var(--text);
+    max-width: 520px;
+    line-height: 1.65;
+    opacity: 0;
+    animation: fadeUp 0.7s 0.5s forwards;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 20px;
+    margin-top: 48px;
+    opacity: 0;
+    animation: fadeUp 0.7s 0.65s forwards;
+  }
+
+  .btn-primary {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--void);
+    background: var(--neon);
+    padding: 16px 36px;
+    border: none;
+    cursor: none;
+    text-decoration: none;
+    display: inline-block;
+    transition: background 0.2s, transform 0.15s;
+    clip-path: polygon(12px 0%, 100% 0%, calc(100% - 12px) 100%, 0% 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 60%;
+    height: 100%;
+    background: rgba(255,255,255,0.25);
+    transform: skewX(-20deg);
+    transition: left 0.4s;
+  }
+  .btn-primary:hover { background: #fff; }
+  .btn-primary:hover::before { left: 160%; }
+
+  .btn-ghost {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text);
+    background: transparent;
+    padding: 16px 36px;
+    border: 1px solid var(--muted);
+    cursor: none;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .btn-ghost:hover { border-color: var(--neon); color: var(--neon); }
+  .btn-ghost .arrow { transition: transform 0.2s; }
+  .btn-ghost:hover .arrow { transform: translateX(4px); }
+
+  /* FLOATING SHAPES */
+  .shape {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .shape-1 {
+    width: 500px; height: 500px;
+    background: rgba(0, 255, 178, 0.07);
+    top: -100px; right: -100px;
+    animation: drift1 8s ease-in-out infinite;
+  }
+  .shape-2 {
+    width: 350px; height: 350px;
+    background: rgba(255, 45, 107, 0.06);
+    bottom: 0; left: 30%;
+    animation: drift2 10s ease-in-out infinite;
+  }
+  .shape-3 {
+    width: 200px; height: 200px;
+    background: rgba(0, 150, 255, 0.08);
+    top: 40%; right: 20%;
+    animation: drift3 7s ease-in-out infinite;
+  }
+
+  /* STATS BAR */
+  .stats-bar {
+    background: var(--panel);
+    border-top: 1px solid rgba(0,255,178,0.1);
+    border-bottom: 1px solid rgba(0,255,178,0.1);
+    padding: 32px 48px;
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    gap: 24px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .stat {
+    text-align: center;
+  }
+  .stat-num {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 2.8rem;
+    color: var(--neon);
+    line-height: 1;
+    letter-spacing: 0.02em;
+  }
+  .stat-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* GAMES SECTION */
+  section { position: relative; z-index: 2; }
+
+  .section-header {
+    padding: 100px 48px 60px;
+  }
+  .section-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--hot);
+    margin-bottom: 16px;
+  }
+  .section-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(2.5rem, 5vw, 4.5rem);
+    color: var(--white);
+    line-height: 1;
+  }
+
+  .games-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+    padding: 0 48px;
+  }
+
+  .game-card {
+    position: relative;
+    aspect-ratio: 3/4;
+    background: var(--panel);
+    overflow: hidden;
+    cursor: none;
+    group: true;
+  }
+
+  .game-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(5,8,16,0.95) 0%, rgba(5,8,16,0.3) 50%, transparent 100%);
+    z-index: 2;
+    transition: opacity 0.4s;
+  }
+
+  .game-bg {
+    position: absolute;
+    inset: 0;
+    transition: transform 0.6s ease;
+  }
+  .game-card:hover .game-bg { transform: scale(1.06); }
+
+  .game-bg-1 {
+    background:
+      radial-gradient(circle at 30% 40%, rgba(0,255,178,0.3) 0%, transparent 50%),
+      radial-gradient(circle at 80% 70%, rgba(255,45,107,0.2) 0%, transparent 40%),
+      linear-gradient(135deg, #050D20, #0A1535);
+  }
+  .game-bg-2 {
+    background:
+      radial-gradient(circle at 70% 30%, rgba(255,120,0,0.3) 0%, transparent 50%),
+      radial-gradient(circle at 20% 80%, rgba(100,0,255,0.2) 0%, transparent 40%),
+      linear-gradient(135deg, #100508, #200A15);
+  }
+  .game-bg-3 {
+    background:
+      radial-gradient(circle at 50% 50%, rgba(0,180,255,0.25) 0%, transparent 60%),
+      radial-gradient(circle at 90% 20%, rgba(0,255,178,0.15) 0%, transparent 40%),
+      linear-gradient(135deg, #050C18, #0A1525);
+  }
+
+  .game-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -60%);
+    z-index: 1;
+    font-size: 5rem;
+    opacity: 0.5;
+    transition: opacity 0.4s, transform 0.4s;
+    filter: drop-shadow(0 0 30px currentColor);
+  }
+  .game-card:hover .game-icon { opacity: 0.8; transform: translate(-50%, -55%); }
+
+  .game-info {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    padding: 28px;
+    z-index: 3;
+    transform: translateY(12px);
+    transition: transform 0.4s;
+  }
+  .game-card:hover .game-info { transform: translateY(0); }
+
+  .game-genre {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--neon);
+    margin-bottom: 8px;
+  }
+  .game-name {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.8rem;
+    color: var(--white);
+    line-height: 1;
+    margin-bottom: 10px;
+  }
+  .game-desc {
+    font-size: 0.85rem;
+    color: var(--text);
+    line-height: 1.5;
+    opacity: 0;
+    transition: opacity 0.4s 0.1s;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.3s, max-height 0.4s;
+  }
+  .game-card:hover .game-desc { opacity: 1; max-height: 100px; }
+
+  .game-badge {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 0.15em;
+    padding: 4px 10px;
+    margin-top: 12px;
+    clip-path: polygon(6px 0%, 100% 0%, calc(100% - 6px) 100%, 0% 100%);
+  }
+  .badge-live { background: var(--neon); color: var(--void); }
+  .badge-beta { background: var(--hot); color: var(--white); }
+  .badge-soon { background: var(--muted); color: var(--white); }
+
+  /* FEATURES */
+  .features {
+    padding: 80px 48px 100px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+    align-items: center;
+  }
+
+  .features-copy .section-tag { margin-bottom: 20px; }
+
+  .features-list {
+    margin-top: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+
+  .feature-item {
+    display: flex;
+    gap: 20px;
+    padding: 24px;
+    background: var(--panel);
+    border: 1px solid rgba(0,255,178,0.06);
+    border-left: 3px solid var(--neon);
+    transition: border-color 0.3s, transform 0.2s;
+    cursor: none;
+  }
+  .feature-item:nth-child(even) { border-left-color: var(--hot); }
+  .feature-item:hover { border-color: var(--neon); transform: translateX(4px); }
+
+  .feature-icon {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .feature-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.1rem;
+    color: var(--white);
+    margin-bottom: 6px;
+    letter-spacing: 0.03em;
+  }
+  .feature-desc {
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* VISUAL SIDE */
+  .features-visual {
+    position: relative;
+    height: 560px;
+  }
+
+  .vis-card {
+    position: absolute;
+    background: var(--panel);
+    border: 1px solid rgba(0,255,178,0.12);
+    padding: 24px;
+    border-radius: 4px;
+  }
+  .vis-card-1 {
+    top: 0; left: 0; right: 60px;
+    height: 240px;
+    background: linear-gradient(135deg, var(--panel), #0D1C35);
+    animation: floatA 5s ease-in-out infinite;
+  }
+  .vis-card-2 {
+    bottom: 0; right: 0; left: 60px;
+    height: 240px;
+    background: linear-gradient(135deg, #180D1A, var(--panel));
+    animation: floatB 6s ease-in-out infinite;
+  }
+  .vis-card-3 {
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 160px; height: 80px;
+    background: var(--neon);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.4rem;
+    color: var(--void);
+    border: none;
+    z-index: 3;
+    letter-spacing: 0.05em;
+  }
+
+  .vis-ring {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 200px; height: 200px;
+    border: 1px solid rgba(0,255,178,0.2);
+    border-radius: 50%;
+    z-index: 2;
+    animation: spinRing 12s linear infinite;
+  }
+  .vis-ring::before {
+    content: '';
+    position: absolute;
+    top: -5px; left: 50%;
+    width: 10px; height: 10px;
+    background: var(--neon);
+    border-radius: 50%;
+    transform: translateX(-50%);
+    box-shadow: 0 0 10px var(--neon);
+  }
+
+  .vis-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--neon);
+    margin-bottom: 12px;
+  }
+  .vis-bar-wrap { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+  .vis-bar-row { display: flex; align-items: center; gap: 12px; }
+  .vis-bar-label { font-family: 'Space Mono', monospace; font-size: 0.58rem; color: var(--muted); width: 60px; }
+  .vis-bar-track { flex: 1; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+  .vis-bar-fill { height: 100%; border-radius: 3px; }
+
+  /* TESTIMONIALS */
+  .testimonials-section {
+    padding: 80px 48px 100px;
+    background: var(--mid);
+  }
+
+  .testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+    margin-top: 60px;
+  }
+
+  .testi-card {
+    background: var(--panel);
+    padding: 32px;
+    border: 1px solid rgba(0,255,178,0.06);
+    position: relative;
+    transition: border-color 0.3s, transform 0.3s;
+    cursor: none;
+  }
+  .testi-card:hover { border-color: rgba(0,255,178,0.2); transform: translateY(-4px); }
+  .testi-card::before {
+    content: '"';
+    position: absolute;
+    top: 20px; right: 24px;
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 4rem;
+    color: var(--neon);
+    opacity: 0.15;
+    line-height: 1;
+  }
+
+  .testi-text {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--text);
+    margin-bottom: 24px;
+  }
+  .testi-author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .testi-avatar {
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .testi-name {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.05em;
+  }
+  .testi-handle {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  /* CTA */
+  .cta-section {
+    padding: 120px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .cta-section::before {
+    content: '';
+    position: absolute;
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(0,255,178,0.1) 0%, transparent 70%);
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+
+  .cta-title {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: clamp(3rem, 7vw, 6rem);
+    color: var(--white);
+    line-height: 1;
+    margin-bottom: 24px;
+    position: relative;
+  }
+  .cta-sub {
+    font-size: 1.1rem;
+    color: var(--text);
+    max-width: 480px;
+    margin: 0 auto 48px;
+    line-height: 1.6;
+  }
+  .cta-actions {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* FOOTER */
+  footer {
+    background: var(--panel);
+    border-top: 1px solid rgba(0,255,178,0.08);
+    padding: 60px 48px 40px;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 48px;
+  }
+
+  .footer-logo {
+    font-family: 'Black Han Sans', sans-serif;
+    font-size: 1.8rem;
+    color: var(--white);
+    text-decoration: none;
+    display: block;
+    margin-bottom: 16px;
+  }
+  .footer-logo span { color: var(--neon); }
+  .footer-tagline {
+    font-size: 0.88rem;
+    color: var(--muted);
+    line-height: 1.6;
+    max-width: 260px;
+    margin-bottom: 28px;
+  }
+
+  .footer-socials { display: flex; gap: 12px; }
+  .social-btn {
+    width: 38px; height: 38px;
+    border: 1px solid var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+    color: var(--muted);
+    text-decoration: none;
+    transition: border-color 0.2s, color 0.2s;
+    cursor: none;
+  }
+  .social-btn:hover { border-color: var(--neon); color: var(--neon); }
+
+  .footer-col h4 {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--neon);
+    margin-bottom: 20px;
+  }
+  .footer-col ul { list-style: none; }
+  .footer-col li { margin-bottom: 12px; }
+  .footer-col a {
+    font-size: 0.88rem;
+    color: var(--muted);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-col a:hover { color: var(--white); }
+
+  .footer-bottom {
+    margin-top: 48px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(0,255,178,0.06);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    grid-column: 1 / -1;
+  }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes lineIn {
+    to { transform: scaleX(1); }
+  }
+  @keyframes drift1 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(-30px, 20px); }
+  }
+  @keyframes drift2 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(20px, -30px); }
+  }
+  @keyframes drift3 {
+    0%, 100% { transform: translate(0, 0); }
+    50% { transform: translate(15px, 15px); }
+  }
+  @keyframes floatA {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-12px); }
+  }
+  @keyframes floatB {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(12px); }
+  }
+  @keyframes spinRing {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+  }
+  @keyframes glitch {
+    0%, 100% { clip-path: inset(0 0 100% 0); }
+    20% { clip-path: inset(10% 0 85% 0); transform: translateX(-3px); }
+    40% { clip-path: inset(50% 0 30% 0); transform: translateX(3px); }
+    60% { clip-path: inset(70% 0 5% 0); transform: translateX(-2px); }
+    80% { clip-path: inset(90% 0 0% 0); transform: translateX(2px); }
+  }
+
+  .scroll-reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s, transform 0.6s;
+  }
+  .scroll-reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (max-width: 900px) {
+    nav { padding: 16px 24px; }
+    nav ul { display: none; }
+    .hero { padding: 0 24px; }
+    .stats-bar { padding: 24px; }
+    .games-grid { grid-template-columns: 1fr; padding: 0 24px; }
+    .section-header { padding: 60px 24px 40px; }
+    .features { grid-template-columns: 1fr; padding: 40px 24px; }
+    .features-visual { display: none; }
+    .testimonials-section { padding: 60px 24px; }
+    .testimonials-grid { grid-template-columns: 1fr; }
+    .cta-section { padding: 80px 24px; }
+    footer { grid-template-columns: 1fr; padding: 40px 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="logo">JUMP<span>CROSS</span></a>
+  <ul>
+    <li><a href="#games">Games</a></li>
+    <li><a href="#features">Platform</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#careers">Careers</a></li>
+  </ul>
+  <button class="nav-cta">Play Now</button>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="shape shape-1"></div>
+  <div class="shape shape-2"></div>
+  <div class="shape shape-3"></div>
+
+  <div class="hero-eyebrow">⚡ Next-Gen Cross-Platform Gaming</div>
+  <h1>PLAY<br><span class="accent">BEYOND</span><br>LIMITS</h1>
+  <p class="hero-sub">JumpCross breaks the walls between platforms. One account, every device, infinite worlds — your progress always with you.</p>
+  <div class="hero-actions">
+    <a href="#games" class="btn-primary">Explore Games</a>
+    <a href="#features" class="btn-ghost">How It Works <span class="arrow">→</span></a>
+  </div>
+</section>
+
+<!-- STATS BAR -->
+<div class="stats-bar">
+  <div class="stat scroll-reveal">
+    <div class="stat-num">4.2M+</div>
+    <div class="stat-label">Active Players</div>
+  </div>
+  <div class="stat scroll-reveal" style="transition-delay:0.1s">
+    <div class="stat-num">12</div>
+    <div class="stat-label">Games Live</div>
+  </div>
+  <div class="stat scroll-reveal" style="transition-delay:0.2s">
+    <div class="stat-num">99.9%</div>
+    <div class="stat-label">Uptime</div>
+  </div>
+  <div class="stat scroll-reveal" style="transition-delay:0.3s">
+    <div class="stat-num">8</div>
+    <div class="stat-label">Platforms</div>
+  </div>
+  <div class="stat scroll-reveal" style="transition-delay:0.4s">
+    <div class="stat-num">$0</div>
+    <div class="stat-label">To Start</div>
+  </div>
+</div>
+
+<!-- GAMES -->
+<section id="games">
+  <div class="section-header">
+    <div class="section-tag scroll-reveal">// Our Games</div>
+    <h2 class="section-title scroll-reveal" style="transition-delay:0.1s">WORLDS AWAIT</h2>
+  </div>
+
+  <div class="games-grid">
+    <div class="game-card scroll-reveal">
+      <div class="game-bg game-bg-1"></div>
+      <div class="game-icon" style="color:#00FFB2">◈</div>
+      <div class="game-info">
+        <div class="game-genre">Battle Royale</div>
+        <div class="game-name">FRACTURE<br>ZONE</div>
+        <div class="game-desc">100 players, one collapsing dimension. Fight through shifting realities where the ground beneath you rewrites itself every storm.</div>
+        <span class="game-badge badge-live">● Live</span>
+      </div>
+    </div>
+
+    <div class="game-card scroll-reveal" style="transition-delay:0.15s">
+      <div class="game-bg game-bg-2"></div>
+      <div class="game-icon" style="color:#FF7800">⬡</div>
+      <div class="game-info">
+        <div class="game-genre">RPG / Open World</div>
+        <div class="game-name">EMBER<br>DRIFT</div>
+        <div class="game-desc">A post-collapse earth with mythic tech. Build, forge alliances, and shape the future across a seamless continent.</div>
+        <span class="game-badge badge-live">● Live</span>
+      </div>
+    </div>
+
+    <div class="game-card scroll-reveal" style="transition-delay:0.3s">
+      <div class="game-bg game-bg-3"></div>
+      <div class="game-icon" style="color:#00B4FF">⊕</div>
+      <div class="game-info">
+        <div class="game-genre">Tactical Shooter</div>
+        <div class="game-name">VOID<br>SECTOR</div>
+        <div class="game-desc">Zero-gravity tactical combat on orbital platforms. Every decision echoes — strategy wins where reflexes fail.</div>
+        <span class="game-badge badge-beta">β Beta</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features" class="features">
+  <div class="features-copy">
+    <div class="section-tag scroll-reveal">// The Platform</div>
+    <h2 class="section-title scroll-reveal" style="transition-delay:0.1s">BUILT FOR<br>EVERYWHERE</h2>
+    <div class="features-list">
+      <div class="feature-item scroll-reveal" style="transition-delay:0.2s">
+        <div class="feature-icon">⚡</div>
+        <div>
+          <div class="feature-title">Cross-Platform Sync</div>
+          <div class="feature-desc">Start on PC, continue on mobile, finish on console. Your progress, inventory, and rank follow you everywhere — instantly.</div>
+        </div>
+      </div>
+      <div class="feature-item scroll-reveal" style="transition-delay:0.3s">
+        <div class="feature-icon">🛡</div>
+        <div>
+          <div class="feature-title">Anti-Cheat Shield</div>
+          <div class="feature-desc">Proprietary ML-driven detection at the kernel level. Fair play isn't a promise — it's enforced in real time.</div>
+        </div>
+      </div>
+      <div class="feature-item scroll-reveal" style="transition-delay:0.4s">
+        <div class="feature-icon">🌐</div>
+        <div>
+          <div class="feature-title">Global Edge Network</div>
+          <div class="feature-desc">48 server nodes across 6 continents. Sub-20ms latency for 94% of our players. Built for competition.</div>
+        </div>
+      </div>
+      <div class="feature-item scroll-reveal" style="transition-delay:0.5s">
+        <div class="feature-icon">🎮</div>
+        <div>
+          <div class="feature-title">Creator Tools</div>
+          <div class="feature-desc">Build your own maps, mods, and mini-games with our open SDK. Share, monetize, and grow your audience inside JumpCross.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="features-visual scroll-reveal" style="transition-delay:0.2s">
+    <div class="vis-card vis-card-1">
+      <div class="vis-label">Player Analytics</div>
+      <div style="font-family:'Black Han Sans',sans-serif; font-size:2.2rem; color:var(--white); margin-bottom:4px;">94,231</div>
+      <div style="font-family:'Space Mono',monospace; font-size:0.62rem; color:var(--neon);">▲ 12.4% from last week</div>
+      <div class="vis-bar-wrap">
+        <div class="vis-bar-row">
+          <div class="vis-bar-label">PC</div>
+          <div class="vis-bar-track"><div class="vis-bar-fill" style="width:78%; background:var(--neon);"></div></div>
+          <span style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--muted);">78%</span>
+        </div>
+        <div class="vis-bar-row">
+          <div class="vis-bar-label">Mobile</div>
+          <div class="vis-bar-track"><div class="vis-bar-fill" style="width:52%; background:var(--hot);"></div></div>
+          <span style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--muted);">52%</span>
+        </div>
+        <div class="vis-bar-row">
+          <div class="vis-bar-label">Console</div>
+          <div class="vis-bar-track"><div class="vis-bar-fill" style="width:34%; background:#00B4FF;"></div></div>
+          <span style="font-family:'Space Mono',monospace;font-size:0.58rem;color:var(--muted);">34%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="vis-ring"></div>
+    <div class="vis-card vis-card-3">LIVE ●</div>
+
+    <div class="vis-card vis-card-2">
+      <div class="vis-label">Match Activity</div>
+      <div style="display:flex; gap:6px; margin-top:12px;">
+        <div style="flex:1; background:var(--mid); height:60px; border-radius:2px; display:flex; align-items:flex-end; padding:4px;">
+          <div style="width:100%; background:var(--neon); height:70%; border-radius:1px; opacity:0.7;"></div>
+        </div>
+        <div style="flex:1; background:var(--mid); height:60px; border-radius:2px; display:flex; align-items:flex-end; padding:4px;">
+          <div style="width:100%; background:var(--neon); height:50%; border-radius:1px; opacity:0.7;"></div>
+        </div>
+        <div style="flex:1; background:var(--mid); height:60px; border-radius:2px; display:flex; align-items:flex-end; padding:4px;">
+          <div style="width:100%; background:var(--neon); height:90%; border-radius:1px; opacity:0.7;"></div>
+        </div>
+        <div style="flex:1; background:var(--mid); height:60px; border-radius:2px; display:flex; align-items:flex-end; padding:4px;">
+          <div style="width:100%; background:var(--neon); height:65%; border-radius:1px; opacity:0.7;"></div>
+        </div>
+        <div style="flex:1; background:var(--mid); height:60px; border-radius:2px; display:flex; align-items:flex-end; padding:4px;">
+          <div style="width:100%; background:var(--hot); height:100%; border-radius:1px; opacity:0.9;"></div>
+        </div>
+      </div>
+      <div style="font-family:'Space Mono',monospace; font-size:0.6rem; color:var(--muted); margin-top:10px;">PEAK NOW · 1,240 MATCHES/MIN</div>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section id="about" class="testimonials-section">
+  <div class="section-tag scroll-reveal">// Community</div>
+  <h2 class="section-title scroll-reveal" style="transition-delay:0.1s">PLAYERS SPEAK</h2>
+
+  <div class="testimonials-grid">
+    <div class="testi-card scroll-reveal" style="transition-delay:0.2s">
+      <div class="testi-text">Playing Fracture Zone cross-platform with my console friends while on my laptop is insane. The sync is seamless — I forget it's even different hardware.</div>
+      <div class="testi-author">
+        <div class="testi-avatar" style="background:rgba(0,255,178,0.15); color:var(--neon);">🎮</div>
+        <div>
+          <div class="testi-name">KIRA_VOSS</div>
+          <div class="testi-handle">@kiravoss · PC + Switch</div>
+        </div>
+      </div>
+    </div>
+    <div class="testi-card scroll-reveal" style="transition-delay:0.3s">
+      <div class="testi-text">I built a custom map in Ember Drift using their SDK, published it, and made $4K in the first week. Never thought I could monetize like this.</div>
+      <div class="testi-author">
+        <div class="testi-avatar" style="background:rgba(255,45,107,0.15); color:var(--hot);">🔥</div>
+        <div>
+          <div class="testi-name">DREK_BUILDS</div>
+          <div class="testi-handle">@drekbuilds · Creator</div>
+        </div>
+      </div>
+    </div>
+    <div class="testi-card scroll-reveal" style="transition-delay:0.4s">
+      <div class="testi-text">No lag, no cheaters, no excuses. Void Sector is the cleanest tactical shooter I've played in years. JumpCross actually delivers on competitive integrity.</div>
+      <div class="testi-author">
+        <div class="testi-avatar" style="background:rgba(0,180,255,0.15); color:#00B4FF;">⚡</div>
+        <div>
+          <div class="testi-name">PRO_SILV3R</div>
+          <div class="testi-handle">@prosilv3r · Ranked #12 Global</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2 class="cta-title scroll-reveal">JUMP IN.<br><span style="color:var(--neon);">NOW.</span></h2>
+  <p class="cta-sub scroll-reveal" style="transition-delay:0.1s">Free to play. Cross every platform. Your next obsession is one click away.</p>
+  <div class="cta-actions scroll-reveal" style="transition-delay:0.2s">
+    <a href="#" class="btn-primary">Create Free Account</a>
+    <a href="#" class="btn-ghost">Download App <span class="arrow">→</span></a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div>
+    <a href="#" class="footer-logo">JUMP<span>CROSS</span></a>
+    <p class="footer-tagline">Building the future of cross-platform gaming — one world at a time.</p>
+    <div class="footer-socials">
+      <a href="#" class="social-btn">𝕏</a>
+      <a href="#" class="social-btn">in</a>
+      <a href="#" class="social-btn">▶</a>
+      <a href="#" class="social-btn">◉</a>
+    </div>
+  </div>
+  <div class="footer-col">
+    <h4>Games</h4>
+    <ul>
+      <li><a href="#">Fracture Zone</a></li>
+      <li><a href="#">Ember Drift</a></li>
+      <li><a href="#">Void Sector</a></li>
+      <li><a href="#">All Games</a></li>
+    </ul>
+  </div>
+  <div class="footer-col">
+    <h4>Platform</h4>
+    <ul>
+      <li><a href="#">Creator SDK</a></li>
+      <li><a href="#">Developer API</a></li>
+      <li><a href="#">Server Status</a></li>
+      <li><a href="#">Roadmap</a></li>
+    </ul>
+  </div>
+  <div class="footer-col" id="careers">
+    <h4>Company</h4>
+    <ul>
+      <li><a href="#">About Us</a></li>
+      <li><a href="#">Careers</a></li>
+      <li><a href="#">Press Kit</a></li>
+      <li><a href="#">Contact</a></li>
+    </ul>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 JumpCross Inc. All rights reserved.</span>
+    <span>Privacy · Terms · Cookies</span>
+  </div>
+</footer>
+
+<script>
+  // Custom cursor
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
+
+  document.addEventListener('mousemove', e => {
+    mouseX = e.clientX; mouseY = e.clientY;
+    cursor.style.left = mouseX + 'px';
+    cursor.style.top = mouseY + 'px';
+  });
+
+  function animateRing() {
+    ringX += (mouseX - ringX) * 0.12;
+    ringY += (mouseY - ringY) * 0.12;
+    ring.style.left = ringX + 'px';
+    ring.style.top = ringY + 'px';
+    requestAnimationFrame(animateRing);
+  }
+  animateRing();
+
+  document.querySelectorAll('a, button, .game-card, .feature-item, .testi-card').forEach(el => {
+    el.addEventListener('mouseenter', () => {
+      cursor.style.width = '20px'; cursor.style.height = '20px';
+      ring.style.width = '56px'; ring.style.height = '56px';
+      ring.style.opacity = '0.8';
+    });
+    el.addEventListener('mouseleave', () => {
+      cursor.style.width = '12px'; cursor.style.height = '12px';
+      ring.style.width = '36px'; ring.style.height = '36px';
+      ring.style.opacity = '0.5';
+    });
+  });
+
+  // Scroll reveal
+  const reveals = document.querySelectorAll('.scroll-reveal');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+  }, { threshold: 0.12 });
+  reveals.forEach(el => observer.observe(el));
+
+  // Counter animation for stats
+  function animateCounter(el, target, suffix) {
+    let start = 0;
+    const duration = 1400;
+    const step = timestamp => {
+      if (!start) start = timestamp;
+      const progress = Math.min((timestamp - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      el.textContent = (target < 100 ? (eased * target).toFixed(1) : Math.floor(eased * target).toLocaleString()) + suffix;
+      if (progress < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  const statNums = document.querySelectorAll('.stat-num');
+  const data = [
+    { val: 4200000, suffix: 'M+', display: n => (n/1000000).toFixed(1) + 'M+' },
+    { val: 12, suffix: '', display: n => Math.floor(n) },
+    { val: 99.9, suffix: '%', display: n => n.toFixed(1) + '%' },
+    { val: 8, suffix: '', display: n => Math.floor(n) },
+    { val: 0, suffix: '', display: _ => '$0' }
+  ];
+
+  const statObserver = new IntersectionObserver(entries => {
+    entries.forEach((e, i) => {
+      if (e.isIntersecting) {
+        const idx = Array.from(statNums).indexOf(e.target);
+        if (idx >= 0 && data[idx]) {
+          const d = data[idx];
+          let start = null;
+          const duration = 1400;
+          const step = ts => {
+            if (!start) start = ts;
+            const p = Math.min((ts - start) / duration, 1);
+            const ease = 1 - Math.pow(1 - p, 3);
+            e.target.textContent = d.display(ease * d.val);
+            if (p < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+          statObserver.unobserve(e.target);
+        }
+      }
+    });
+  }, { threshold: 0.5 });
+
+  statNums.forEach(el => statObserver.observe(el));
+</script>
+</body>
+</html>
